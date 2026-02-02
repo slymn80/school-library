@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 Int        @id @default(autoincrement())
+  username           String     @unique
+  password           String
+  fullName           String
+  role               String     @default("LIBRARIAN")
+  mustChangePassword Boolean    @default(true)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  auditLogs          AuditLog[]
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  nameKk    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  books     Book[]
+}
+
+model Book {
+  id              Int      @id @default(autoincrement())
+  title           String
+  author          String
+  isbn            String?
+  publisher       String?
+  year            Int?
+  categoryId      Int
+  category        Category @relation(fields: [categoryId], references: [id])
+  shelfLocation   String?
+  inventoryNumber String   @unique
+  totalCopies     Int      @default(1)
+  availableCopies Int      @default(1)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  loans           Loan[]
+}
+
+model Student {
+  id        Int      @id @default(autoincrement())
+  fullName  String
+  studentId String   @unique
+  grade     String
+  school    String
+  branch    String?
+  phone     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  loans     Loan[]
+}
+
+model Loan {
+  id         Int       @id @default(autoincrement())
+  bookId     Int
+  book       Book      @relation(fields: [bookId], references: [id])
+  studentId  Int
+  student    Student   @relation(fields: [studentId], references: [id])
+  loanDate   DateTime
+  dueDate    DateTime
+  returnedAt DateTime?
+  fee        Float     @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Settings {
+  id           Int      @id @default(autoincrement())
+  feePerDay    Float    @default(50)
+  schoolName   String   @default("Школьная библиотека")
+  schoolNameKk String   @default("Мектеп кітапханасы")
+  schoolLogo   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  timestamp   DateTime @default(now())
+  actorUserId Int
+  actorUser   User     @relation(fields: [actorUserId], references: [id])
+  actionType  String
+  entityType  String
+  entityId    Int
+  details     String   @default("{}")
+}
