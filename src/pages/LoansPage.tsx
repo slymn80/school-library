@@ -29,7 +29,7 @@ import {
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import { format, differenceInDays, parseISO } from 'date-fns';
-import { ru, kk } from 'date-fns/locale';
+import { ru, kk, tr, enUS } from 'date-fns/locale';
 import { useAuthStore } from '../store/authStore';
 import { Loan } from '../types';
 import { exportLoansToExcel, exportOverdueReportToPdf } from '../utils/export';
@@ -44,7 +44,7 @@ const LoansPage: React.FC = () => {
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [loanToReturn, setLoanToReturn] = useState<Loan | null>(null);
 
-  const locale = i18n.language === 'kk' ? kk : ru;
+  const locale = i18n.language === 'kk' ? kk : i18n.language === 'tr' ? tr : i18n.language === 'en' ? enUS : ru;
 
   const fetchLoans = async () => {
     try {
@@ -80,11 +80,15 @@ const LoansPage: React.FC = () => {
       const response = await window.electronAPI.loans.return(loanToReturn.id, user!.id);
       if (response.success) {
         const fee = response.data.fee;
+        const rewardPointsEarned = response.data.rewardPointsEarned || 0;
+        let message = t('loans.returnSuccess');
         if (fee > 0) {
-          toast.success(`${t('loans.returnSuccess')} ${t('loans.feeAmount')}: ${fee} KZT`);
-        } else {
-          toast.success(t('loans.returnSuccess'));
+          message += ` ${t('loans.feeAmount')}: ${fee} KZT`;
         }
+        if (rewardPointsEarned > 0) {
+          message += ` | +${rewardPointsEarned} ${t('students.pointsEarned')}`;
+        }
+        toast.success(message);
         fetchLoans();
       } else {
         toast.error(t('errors.general'));
@@ -106,12 +110,17 @@ const LoansPage: React.FC = () => {
     );
     const settingsResponse = await window.electronAPI.settings.get();
     const settings = settingsResponse.data;
-    exportOverdueReportToPdf(overdueLoans, t, i18n.language, settings);
+    await exportOverdueReportToPdf(overdueLoans, t, i18n.language, settings);
   };
 
   const getStatus = (loan: Loan) => {
     if (loan.returnedAt) return 'returned';
-    if (new Date(loan.dueDate) < new Date()) return 'overdue';
+    try {
+      const dueDate = typeof loan.dueDate === 'string' ? parseISO(loan.dueDate) : new Date(loan.dueDate);
+      if (dueDate < new Date()) return 'overdue';
+    } catch {
+      // ignore
+    }
     return 'active';
   };
 
@@ -128,16 +137,30 @@ const LoansPage: React.FC = () => {
   };
 
   const getOverdueDays = (loan: Loan) => {
-    if (loan.returnedAt) {
-      const returnDate = parseISO(loan.returnedAt);
-      const dueDate = parseISO(loan.dueDate);
-      const days = differenceInDays(returnDate, dueDate);
+    try {
+      if (loan.returnedAt) {
+        const returnDate = typeof loan.returnedAt === 'string' ? parseISO(loan.returnedAt) : new Date(loan.returnedAt);
+        const dueDate = typeof loan.dueDate === 'string' ? parseISO(loan.dueDate) : new Date(loan.dueDate);
+        const days = differenceInDays(returnDate, dueDate);
+        return days > 0 ? days : 0;
+      }
+      const today = new Date();
+      const dueDate = typeof loan.dueDate === 'string' ? parseISO(loan.dueDate) : new Date(loan.dueDate);
+      const days = differenceInDays(today, dueDate);
       return days > 0 ? days : 0;
+    } catch {
+      return 0;
     }
-    const today = new Date();
-    const dueDate = parseISO(loan.dueDate);
-    const days = differenceInDays(today, dueDate);
-    return days > 0 ? days : 0;
+  };
+
+  const formatDate = (value: string | Date | null | undefined): string => {
+    if (!value) return '-';
+    try {
+      const date = typeof value === 'string' ? parseISO(value) : new Date(value);
+      return format(date, 'dd.MM.yyyy', { locale });
+    } catch {
+      return '-';
+    }
   };
 
   const columns: GridColDef[] = [
@@ -159,22 +182,19 @@ const LoansPage: React.FC = () => {
       field: 'loanDate',
       headerName: t('loans.loanDate'),
       width: 120,
-      valueFormatter: (params) =>
-        format(parseISO(params.value), 'dd.MM.yyyy', { locale }),
+      renderCell: (params: GridRenderCellParams) => formatDate(params.row.loanDate),
     },
     {
       field: 'dueDate',
       headerName: t('loans.dueDate'),
       width: 120,
-      valueFormatter: (params) =>
-        format(parseISO(params.value), 'dd.MM.yyyy', { locale }),
+      renderCell: (params: GridRenderCellParams) => formatDate(params.row.dueDate),
     },
     {
       field: 'returnedAt',
       headerName: t('loans.returnDate'),
       width: 120,
-      valueFormatter: (params) =>
-        params.value ? format(parseISO(params.value), 'dd.MM.yyyy', { locale }) : '-',
+      renderCell: (params: GridRenderCellParams) => formatDate(params.row.returnedAt),
     },
     {
       field: 'status',
@@ -192,7 +212,7 @@ const LoansPage: React.FC = () => {
       field: 'fee',
       headerName: t('loans.fee'),
       width: 100,
-      valueFormatter: (params) => (params.value > 0 ? `${params.value} KZT` : '-'),
+      renderCell: (params: GridRenderCellParams) => (params.row.fee > 0 ? `${params.row.fee} KZT` : '-'),
     },
     {
       field: 'actions',
@@ -242,7 +262,7 @@ const LoansPage: React.FC = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => navigate('/loans/new')}
+            onClick={() => navigate('/library/loans/new')}
           >
             {t('loans.newLoan')}
           </Button>

@@ -1,208 +1,184 @@
 # School Library Management System
 
-A production-ready Windows desktop application for school library management built with Electron, React, and TypeScript.
+A production-ready Windows desktop application for school library and textbook distribution management built with Electron, React, and TypeScript.
 
 ## Features
 
-- **Multi-language support**: Russian (ru) and Kazakh (kk)
-- **Offline-first**: Works without internet using local SQLite database
-- **Complete library management**:
-  - Books inventory with barcode generation (Code128)
-  - Student/member management
-  - Loan tracking with overdue fees
-  - Reports and statistics
-- **Security**: Password hashing, role-based access control
-- **Data export**: Excel and PDF reports
-- **Backup/Restore**: Database backup and recovery
+### Library Module
+- Books inventory with barcode generation (Code128)
+- Student/member management
+- Loan tracking with overdue fees
+- Book recommendations (collaborative filtering)
+- Reservations and favorites
+- Library events management with photo upload
+- Certificate awards for top readers
+- Inventory count
+- Reports and statistics with charts
+
+### Textbook Distribution Module
+- Teachers and class branches management
+- Textbook catalog with stock tracking
+- Textbook sets (grade-based grouping)
+- Class-based distribution and return
+- Individual distribution (teacher/student)
+- Distribution reports and statistics
+
+### General
+- **4 languages**: Kazakh, Russian, Turkish, English
+- **Offline-first**: Local SQLite database, no internet required
+- **License system**: 30-day trial + license key activation
+- **Security**: Password hashing (bcrypt), role-based access (Admin/Librarian)
+- **Data export**: Excel (ExcelJS) and PDF (jsPDF) reports with Cyrillic support
+- **Backup/Restore**: Manual and automatic database backup
+- **Audit log**: All actions tracked with user info
 
 ## Tech Stack
 
-- **Frontend**: React 18, TypeScript, Material UI, Vite
-- **Backend**: Electron (main + preload)
+- **Frontend**: React 18, TypeScript, Material UI 5, Recharts
+- **Backend**: Electron 28 (main + preload)
 - **Database**: SQLite with Prisma ORM
-- **Localization**: i18next + react-i18next
+- **Localization**: i18next (kk, ru, tr, en)
 - **Barcode**: bwip-js (Code128)
-- **Export**: ExcelJS, jsPDF
+- **Export**: ExcelJS, jsPDF + jspdf-autotable
+- **Build**: Vite, electron-builder (NSIS installer)
 
 ## Prerequisites
 
 - Node.js 18+ (LTS recommended)
-- npm or yarn
+- npm
 - Git
 
 ## Installation
 
-1. Clone the repository:
 ```bash
 git clone <repository-url>
 cd school-library
-```
-
-2. Install dependencies:
-```bash
 npm install
 ```
 
-3. Generate Prisma client:
-```bash
-npx prisma generate
-```
+## Running
 
-4. Create database and run migrations:
-```bash
-npx prisma migrate dev --name init
-```
-
-5. Seed the database with initial data:
-```bash
-npx ts-node prisma/seed.ts
-```
-
-## Running the Application
-
-### Development Mode
+### Development
 
 ```bash
 npm run dev
 ```
 
-This will start both the Vite development server and Electron.
+Starts Vite dev server + Electron simultaneously.
 
 ### Production Build
 
 ```bash
-npm run build
 npm run package
 ```
 
-The installer will be created in the `release/` folder.
+Creates `build-output/School Library Setup X.X.X.exe` (NSIS installer).
 
-## Default Login Credentials
+The installer creates:
+- Desktop shortcut
+- Start menu shortcut
+- Entry in Programs & Features (Add/Remove Programs)
 
-- **Username**: admin
-- **Password**: admin123
+## Default Login
 
-**Note**: You will be prompted to change your password on first login.
+- **Username**: `admin`
+- **Password**: `admin123`
+
+First login requires a password change.
+
+## User Roles
+
+| Role | Access |
+|------|--------|
+| **Admin** | Full access + user management + audit log |
+| **Librarian** | Books, students, loans, reports, settings |
 
 ## Project Structure
 
 ```
 school-library/
 ├── electron/
-│   ├── main.ts           # Electron main process
-│   └── preload.ts        # Preload script for IPC
+│   ├── main.ts              # Electron main process, DB init, IPC handlers
+│   └── preload.ts           # contextBridge API definitions
 ├── prisma/
-│   ├── schema.prisma     # Database schema
-│   └── seed.ts           # Database seeding
+│   └── schema.prisma        # Database schema
+├── scripts/
+│   ├── generate-license.ts  # License key generator (developer tool)
+│   ├── patch-icon.js        # Post-build icon patcher
+│   └── create-icon.js       # App icon generator
 ├── src/
-│   ├── components/       # React components
-│   ├── pages/            # Page components
-│   ├── store/            # Zustand state management
-│   ├── types/            # TypeScript types
-│   ├── utils/            # Utility functions
-│   ├── locales/          # Translation files
-│   │   ├── ru/
-│   │   └── kk/
-│   ├── App.tsx           # Main App component
-│   ├── main.tsx          # React entry point
-│   └── i18n.ts           # i18next configuration
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-└── README.md
+│   ├── components/
+│   │   ├── Layout.tsx        # Library module sidebar layout
+│   │   └── TextbookLayout.tsx# Textbook module sidebar layout
+│   ├── pages/
+│   │   ├── LicensePage.tsx   # License activation screen
+│   │   ├── LoginPage.tsx     # Login screen
+│   │   ├── ModuleSelectionPage.tsx
+│   │   ├── DashboardPage.tsx
+│   │   ├── BooksPage.tsx / BookFormPage.tsx
+│   │   ├── StudentsPage.tsx / StudentFormPage.tsx
+│   │   ├── LoansPage.tsx / LoanFormPage.tsx
+│   │   ├── ReportsPage.tsx
+│   │   ├── StatisticsPage.tsx
+│   │   ├── CertificatesPage.tsx
+│   │   ├── InventoryCountPage.tsx
+│   │   ├── LibraryEventsPage.tsx
+│   │   ├── SettingsPage.tsx
+│   │   ├── UsersPage.tsx / UserFormPage.tsx
+│   │   ├── AuditLogPage.tsx
+│   │   ├── BarcodeLabelsPage.tsx
+│   │   └── textbook/         # Textbook module pages
+│   ├── store/
+│   │   └── authStore.ts      # Zustand auth state
+│   ├── types/
+│   │   └── index.ts          # TypeScript interfaces
+│   ├── utils/
+│   │   ├── export.ts         # Excel/PDF export functions
+│   │   └── pdf-fonts.ts      # Cyrillic font for jsPDF
+│   ├── locales/
+│   │   ├── kk/translation.json
+│   │   ├── ru/translation.json
+│   │   ├── tr/translation.json
+│   │   └── en/translation.json
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── i18n.ts
+├── public/
+│   ├── icon.png
+│   └── icon.ico
+└── package.json
 ```
 
-## Database Modes
+## Data Storage
 
-### Mode A: Local SQLite (Default)
-- Data stored in user's AppData folder
-- Works completely offline
-- No additional setup required
+All data is stored in the user's AppData directory:
 
-### Mode B: Server Mode (Optional)
-For shared database across multiple computers on a local network, set up the server:
-
-1. Set up PostgreSQL database
-2. Configure server in `/server` folder
-3. Set `SERVER_URL` environment variable in the client app
-
-## User Roles
-
-- **Admin**: Full access to all features including user management and audit logs
-- **Librarian**: Access to books, students, loans, reports, and settings
-
-## Features Guide
-
-### Books Management
-- Add, edit, delete books
-- Search by title, author, ISBN, inventory number
-- Filter by category
-- Generate and print barcode labels
-- Import/export from Excel
-
-### Students Management
-- Add, edit, delete students
-- Search by name, student ID
-- Filter by grade/class
-- Track active loans per student
-
-### Loans Management
-- Issue new loans with due date
-- Return books with automatic fee calculation
-- View active, returned, and overdue loans
-- Export loan reports
-
-### Barcode Labels
-- Generate Code128 barcodes from inventory numbers
-- Multiple label sizes (30x15mm, 50x25mm, 70x35mm)
-- Print preview and PDF export
-- Batch printing support
-
-### Reports
-- Books inventory (Excel/PDF)
-- Students list (Excel)
-- Active loans (Excel)
-- Overdue report with fees (Excel/PDF)
-
-### Settings
-- Fee per day configuration
-- School name customization
-- Database backup and restore
-
-## Git Initialization
-
-```bash
-# Initialize Git repository
-git init
-
-# Add all files
-git add .
-
-# Create initial commit
-git commit -m "Initial commit: School Library Management System
-
-Features:
-- Electron + React + TypeScript
-- SQLite database with Prisma ORM
-- Multi-language support (RU/KK)
-- Books, Students, Loans management
-- Barcode generation and printing
-- Excel/PDF export
-- User authentication and roles
-- Audit logging
-- Backup/restore"
-
-# Add remote (replace with your repository URL)
-git remote add origin <your-repository-url>
-
-# Push to remote
-git push -u origin main
+```
+%AppData%/school-library/
+├── library.db        # SQLite database
+├── license.json      # License/trial information
+├── app.log           # Application log
+└── backups/          # Auto backup files
 ```
 
-## License
+## License System
 
-MIT License
+The app includes a built-in license system:
 
-## Support
+- **Trial**: 30-day free trial starts on first launch (all features available)
+- **PRO**: Activated with a license key (no feature restrictions)
+- License status is visible in the sidebar and in Settings
+- When expired, a new key can be entered from Settings to continue
 
-For issues and feature requests, please create an issue in the repository.
+See [LICENSE-GENERATOR.md](LICENSE-GENERATOR.md) for license key generation instructions.
+
+## npm Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start development mode |
+| `npm run build` | Build for production |
+| `npm run package` | Build + create NSIS installer |
+| `npm run generate-license` | Generate a license key (see docs) |
+| `npm run prisma:generate` | Regenerate Prisma client |
+| `npm run prisma:studio` | Open Prisma Studio (DB browser) |

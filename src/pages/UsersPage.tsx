@@ -44,11 +44,16 @@ const UsersPage: React.FC = () => {
   const fetchUsers = async () => {
     try {
       const response = await window.electronAPI.users.getAll();
-      if (response.success) {
-        setUsers(response.data);
+      if (response.success && response.data) {
+        setUsers(response.data || []);
+      } else {
+        console.error('Failed to fetch users:', response.error);
+        setUsers([]);
       }
     } catch (error) {
+      console.error('Error fetching users:', error);
       toast.error(t('errors.general'));
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -120,9 +125,14 @@ const UsersPage: React.FC = () => {
     {
       field: 'createdAt',
       headerName: t('users.createdAt'),
-      width: 150,
-      valueFormatter: (params) =>
-        params.value ? format(parseISO(params.value), 'dd.MM.yyyy HH:mm') : '-',
+      width: 180,
+      valueFormatter: (params) => {
+        try {
+          return params.value ? format(parseISO(params.value), 'dd.MM.yyyy HH:mm') : '-';
+        } catch {
+          return '-';
+        }
+      },
     },
     {
       field: 'actions',
@@ -175,35 +185,38 @@ const UsersPage: React.FC = () => {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => navigate('/users/new')}
+          onClick={() => navigate('/library/users/new')}
         >
           {t('users.addUser')}
         </Button>
       </Box>
 
       <Card>
-        <CardContent sx={{ height: 500 }}>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <DataGrid
-              rows={users}
-              columns={columns}
-              pageSizeOptions={[10, 25]}
-              initialState={{
-                pagination: { paginationModel: { pageSize: 10 } },
-              }}
-              disableRowSelectionOnClick
-              localeText={{
-                noRowsLabel: t('common.noData'),
-                MuiTablePagination: {
-                  labelRowsPerPage: '',
-                },
-              }}
-            />
-          )}
+        <CardContent>
+          <Box sx={{ height: 500, width: '100%' }}>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <DataGrid
+                rows={users}
+                columns={columns}
+                getRowId={(row) => row.id}
+                pageSizeOptions={[10, 25]}
+                initialState={{
+                  pagination: { paginationModel: { pageSize: 10 } },
+                }}
+                disableRowSelectionOnClick
+                localeText={{
+                  noRowsLabel: t('common.noData'),
+                  MuiTablePagination: {
+                    labelRowsPerPage: '',
+                  },
+                }}
+              />
+            )}
+          </Box>
         </CardContent>
       </Card>
 

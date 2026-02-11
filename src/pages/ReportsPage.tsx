@@ -105,7 +105,7 @@ const ReportsPage: React.FC = () => {
           exportBooksToExcel(response.data, t, i18n.language);
         } else {
           const settingsResponse = await window.electronAPI.settings.get();
-          exportBooksInventoryToPdf(response.data, t, i18n.language, settingsResponse.data);
+          await exportBooksInventoryToPdf(response.data, t, i18n.language, settingsResponse.data);
         }
         toast.success(t('common.success'));
       }
@@ -149,7 +149,7 @@ const ReportsPage: React.FC = () => {
       const response = await window.electronAPI.loans.getAll({ status: 'overdue' });
       if (response.success) {
         const settingsResponse = await window.electronAPI.settings.get();
-        exportOverdueReportToPdf(response.data, t, i18n.language, settingsResponse.data);
+        await exportOverdueReportToPdf(response.data, t, i18n.language, settingsResponse.data);
         toast.success(t('common.success'));
       }
     } catch (error) {

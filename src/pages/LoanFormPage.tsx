@@ -12,11 +12,23 @@ import {
   Autocomplete,
   Grid,
   CircularProgress,
+  Chip,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  IconButton,
+  Tooltip,
+  Divider,
 } from '@mui/material';
+import {
+  CheckCircle as SelectIcon,
+  AutoStories as RecommendIcon,
+} from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { ru, kk } from 'date-fns/locale';
+import { ru, kk, tr, enUS } from 'date-fns/locale';
 import { addDays, format } from 'date-fns';
 import { toast } from 'react-toastify';
 import { useAuthStore } from '../store/authStore';
@@ -31,8 +43,10 @@ const LoanFormPage: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [recommendations, setRecommendations] = useState<Book[]>([]);
+  const [loadingRecs, setLoadingRecs] = useState(false);
 
-  const locale = i18n.language === 'kk' ? kk : ru;
+  const locale = i18n.language === 'kk' ? kk : i18n.language === 'tr' ? tr : i18n.language === 'en' ? enUS : ru;
 
   const {
     control,
@@ -71,6 +85,32 @@ const LoanFormPage: React.FC = () => {
     fetchData();
   }, [t]);
 
+  useEffect(() => {
+    if (!selectedStudent) {
+      setRecommendations([]);
+      return;
+    }
+    const fetchRecommendations = async () => {
+      setLoadingRecs(true);
+      try {
+        const response = await window.electronAPI.books.getRecommendations(selectedStudent.id, 5);
+        if (response.success) {
+          setRecommendations(response.data.filter((b: Book) => b.availableCopies > 0));
+        }
+      } catch (error) {
+        console.error('Failed to fetch recommendations:', error);
+      } finally {
+        setLoadingRecs(false);
+      }
+    };
+    fetchRecommendations();
+  }, [selectedStudent]);
+
+  const handleSelectRecommended = (book: Book) => {
+    setSelectedBook(book);
+    setValue('bookId', book.id);
+  };
+
   const onSubmit = async (data: LoanFormData) => {
     if (!selectedStudent || !selectedBook) {
       toast.error(t('validation.required'));
@@ -89,7 +129,7 @@ const LoanFormPage: React.FC = () => {
 
       if (response.success) {
         toast.success(t('loans.loanSuccess'));
-        navigate('/loans');
+        navigate('/library/loans');
       } else {
         if (response.error === 'BOOK_NOT_AVAILABLE') {
           toast.error(t('loans.bookNotAvailable'));
@@ -213,6 +253,65 @@ const LoanFormPage: React.FC = () => {
                 </Grid>
               </Grid>
 
+              {selectedStudent && recommendations.length > 0 && (
+                <Card sx={{ mt: 3, backgroundColor: '#fff8e1', border: '1px solid #ffe082' }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <RecommendIcon color="warning" />
+                      <Typography variant="h6">
+                        {t('loans.recommendations')}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {t('loans.recommendationsHint')}
+                    </Typography>
+                    {loadingRecs ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                        <CircularProgress size={24} />
+                      </Box>
+                    ) : (
+                      <List dense disablePadding>
+                        {recommendations.map((book, index) => (
+                          <React.Fragment key={book.id}>
+                            {index > 0 && <Divider />}
+                            <ListItem
+                              sx={{
+                                borderRadius: 1,
+                                backgroundColor: selectedBook?.id === book.id ? '#e8f5e9' : 'transparent',
+                                '&:hover': { backgroundColor: selectedBook?.id === book.id ? '#e8f5e9' : '#fff3e0' },
+                              }}
+                            >
+                              <ListItemText
+                                primary={
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Typography variant="body1" fontWeight="medium">
+                                      {book.title}
+                                    </Typography>
+                                    <Chip label={`${book.availableCopies} ${t('books.availableCopies').toLowerCase()}`} size="small" color="success" variant="outlined" />
+                                  </Box>
+                                }
+                                secondary={`${book.author} · ${book.inventoryNumber}${book.category ? ` · ${book.category.name}` : ''}`}
+                              />
+                              <ListItemSecondaryAction>
+                                <Tooltip title={t('loans.selectRecommended')}>
+                                  <IconButton
+                                    edge="end"
+                                    color={selectedBook?.id === book.id ? 'success' : 'default'}
+                                    onClick={() => handleSelectRecommended(book)}
+                                  >
+                                    <SelectIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </ListItemSecondaryAction>
+                            </ListItem>
+                          </React.Fragment>
+                        ))}
+                      </List>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {selectedStudent && selectedBook && (
                 <Card sx={{ mt: 3, backgroundColor: '#f5f5f5' }}>
                   <CardContent>
@@ -257,7 +356,7 @@ const LoanFormPage: React.FC = () => {
                 </Button>
                 <Button
                   variant="outlined"
-                  onClick={() => navigate('/loans')}
+                  onClick={() => navigate('/library/loans')}
                   disabled={loading}
                 >
                   {t('common.cancel')}

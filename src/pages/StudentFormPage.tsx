@@ -79,7 +79,7 @@ const StudentFormPage: React.FC = () => {
 
       if (response.success) {
         toast.success(t('students.saveSuccess'));
-        navigate('/students');
+        navigate('/library/students');
       } else {
         if (response.error === 'STUDENT_ID_EXISTS') {
           toast.error(t('students.studentIdExists'));
@@ -231,7 +231,7 @@ const StudentFormPage: React.FC = () => {
               </Button>
               <Button
                 variant="outlined"
-                onClick={() => navigate('/students')}
+                onClick={() => navigate('/library/students')}
                 disabled={loading}
               >
                 {t('common.cancel')}

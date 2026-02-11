@@ -16,6 +16,7 @@ import {
   SwapHoriz as LoansIcon,
   Warning as OverdueIcon,
   Add as AddIcon,
+  EmojiEvents as TrophyIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '../store/authStore';
 import { Statistics } from '../types';
@@ -141,21 +142,21 @@ const DashboardPage: React.FC = () => {
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => navigate('/loans/new')}
+              onClick={() => navigate('/library/loans/new')}
             >
               {t('dashboard.newLoan')}
             </Button>
             <Button
               variant="outlined"
               startIcon={<AddIcon />}
-              onClick={() => navigate('/books/new')}
+              onClick={() => navigate('/library/books/new')}
             >
               {t('dashboard.newBook')}
             </Button>
             <Button
               variant="outlined"
               startIcon={<AddIcon />}
-              onClick={() => navigate('/students/new')}
+              onClick={() => navigate('/library/students/new')}
             >
               {t('dashboard.newStudent')}
             </Button>
@@ -173,6 +174,34 @@ const DashboardPage: React.FC = () => {
               <Typography variant="h3" color="primary">
                 {stats?.totalLoansThisMonth || 0}
               </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <TrophyIcon sx={{ fontSize: 48, color: 'white' }} />
+                <Box>
+                  <Typography variant="h6" sx={{ color: 'white' }} gutterBottom>
+                    {t('dashboard.topReader')}
+                  </Typography>
+                  {stats?.topStudent ? (
+                    <>
+                      <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold' }}>
+                        {stats.topStudent.fullName}
+                      </Typography>
+                      <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                        {stats.topStudent.grade} - {stats.topStudent.rewardPoints} {t('dashboard.points')}
+                      </Typography>
+                    </>
+                  ) : (
+                    <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                      {t('dashboard.noTopReaderYet')}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
             </CardContent>
           </Card>
         </Grid>

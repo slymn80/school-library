@@ -23,42 +23,80 @@ model Category {
   id        Int      @id @default(autoincrement())
   name      String
   nameKk    String
+  nameTr    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   books     Book[]
 }
 
 model Book {
-  id              Int      @id @default(autoincrement())
+  id              Int           @id @default(autoincrement())
   title           String
   author          String
   isbn            String?
   publisher       String?
   year            Int?
   categoryId      Int
-  category        Category @relation(fields: [categoryId], references: [id])
+  category        Category      @relation(fields: [categoryId], references: [id])
   shelfLocation   String?
-  inventoryNumber String   @unique
-  totalCopies     Int      @default(1)
-  availableCopies Int      @default(1)
+  inventoryNumber String        @unique
+  totalCopies     Int           @default(1)
+  availableCopies Int           @default(1)
   notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  language        String        @default("ru")
+  coverImage      String?       // Base64 encoded image
+  acquisitionType String        @default("purchase") // purchase, donation, grant
+  donorName       String?
+  acquisitionDate DateTime?
+  condition       String        @default("good") // good, worn, damaged, lost, repair
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   loans           Loan[]
+  reservations    Reservation[]
+  favorites       Favorite[]
 }
 
 model Student {
+  id           Int           @id @default(autoincrement())
+  fullName     String
+  studentId    String        @unique
+  grade        String
+  school       String
+  branch       String?
+  phone        String?
+  photo        String?       // Base64 encoded photo
+  notes        String?
+  rewardPoints Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  loans        Loan[]
+  reservations Reservation[]
+  favorites    Favorite[]
+}
+
+model Reservation {
+  id          Int      @id @default(autoincrement())
+  bookId      Int
+  book        Book     @relation(fields: [bookId], references: [id])
+  studentId   Int
+  student     Student  @relation(fields: [studentId], references: [id])
+  requestDate DateTime @default(now())
+  status      String   @default("waiting") // waiting, notified, cancelled, fulfilled
+  notifiedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Favorite {
   id        Int      @id @default(autoincrement())
-  fullName  String
-  studentId String   @unique
-  grade     String
-  school    String
-  branch    String?
-  phone     String?
-  notes     String?
+  bookId    Int
+  book      Book     @relation(fields: [bookId], references: [id])
+  studentId Int
+  student   Student  @relation(fields: [studentId], references: [id])
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  loans     Loan[]
+
+  @@unique([bookId, studentId])
 }
 
 model Loan {
@@ -76,13 +114,25 @@ model Loan {
 }
 
 model Settings {
-  id           Int      @id @default(autoincrement())
-  feePerDay    Float    @default(50)
-  schoolName   String   @default("Школьная библиотека")
-  schoolNameKk String   @default("Мектеп кітапханасы")
-  schoolLogo   String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                  Int       @id @default(autoincrement())
+  feePerDay           Float     @default(50)
+  schoolName          String    @default("Школьная библиотека")
+  schoolNameKk        String    @default("Мектеп кітапханасы")
+  schoolNameTr        String?
+  schoolNameEn        String?
+  schoolLogo          String?
+  autoBackupEnabled   Boolean   @default(false)
+  autoBackupInterval  Int       @default(7)
+  autoBackupPath      String?
+  lastAutoBackup      DateTime?
+  academicYear        String?   @default("2025-2026")
+  manualBackupHistory String?   @default("[]")
+  restoreHistory      String?   @default("[]")
+  autoBackupHistory   String?   @default("[]")
+  principalName       String?   // School principal name
+  librarianName       String?   // Librarian name
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 }
 
 model AuditLog {
@@ -94,4 +144,155 @@ model AuditLog {
   entityType  String   // USER, BOOK, STUDENT, LOAN, SETTINGS, CATEGORY
   entityId    Int
   details     String   @default("{}")
+}
+
+// ==========================================
+// TEXTBOOK DISTRIBUTION MODULE
+// ==========================================
+
+model Teacher {
+  id        Int      @id @default(autoincrement())
+  fullName  String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  branches  Branch[]
+}
+
+model Branch {
+  id            Int                    @id @default(autoincrement())
+  name          String                 // "9A", "9B", "10A"
+  grade         Int                    // 9, 10, 11, 12
+  teacherId     Int?
+  teacher       Teacher?               @relation(fields: [teacherId], references: [id])
+  studentCount  Int                    @default(0)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  distributions TextbookDistribution[]
+}
+
+model Textbook {
+  id                      Int                          @id @default(autoincrement())
+  // 13 fields based on Excel template
+  author                  String?                      // 1. Авторы (Authors)
+  title                   String                       // 2. Название книги (Book Title)
+  publicationType         String?                      // 3. Вид издания (Publication Type)
+  direction               String?                      // 4. Направление (Direction/Field)
+  publisher               String?                      // 5. Издательство (Publisher)
+  yearPublished           Int?                         // 6. Год издания (Year Published)
+  isbn                    String?                      // 7. ISBN
+  price                   Float?                       // 8. Цена (Price)
+  language                String?                      // 9. Язык текста (Language)
+  gradeFrom               Int                          @default(1) // 10. Класс (Grade From)
+  gradeTo                 Int?                         // 11. Класс до (Grade To)
+  totalStock              Int                          @default(0) // 12. Количество экземпляров (Quantity)
+  subject                 String                       // 13. Предмет (Subject)
+  availableStock          Int                          @default(0)
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
+  setItems                TextbookSetItem[]
+  distributionDetails     TextbookDistributionDetail[]
+  individualDistributions IndividualTextbookDistribution[]
+}
+
+model TextbookSet {
+  id            Int                    @id @default(autoincrement())
+  name          String                 // "9. Sınıf Seti"
+  grade         Int
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  items         TextbookSetItem[]
+  distributions TextbookDistribution[]
+}
+
+model TextbookSetItem {
+  id         Int         @id @default(autoincrement())
+  setId      Int
+  textbookId Int
+  set        TextbookSet @relation(fields: [setId], references: [id], onDelete: Cascade)
+  textbook   Textbook    @relation(fields: [textbookId], references: [id])
+
+  @@unique([setId, textbookId])
+}
+
+model TextbookDistribution {
+  id            Int                          @id @default(autoincrement())
+  branchId      Int
+  setId         Int
+  academicYear  String                       // "2025-2026"
+  distributedAt DateTime                     @default(now())
+  returnedAt    DateTime?
+  status        String                       @default("distributed") // distributed, returned, partial
+  notes         String?                      // Distribution notes
+  returnNotes   String?                      // Return notes
+  branch        Branch                       @relation(fields: [branchId], references: [id])
+  set           TextbookSet                  @relation(fields: [setId], references: [id])
+  details       TextbookDistributionDetail[]
+  createdAt     DateTime                     @default(now())
+  updatedAt     DateTime                     @updatedAt
+}
+
+model TextbookDistributionDetail {
+  id             Int                  @id @default(autoincrement())
+  distributionId Int
+  textbookId     Int
+  distributedQty Int
+  returnedQty    Int                  @default(0)
+  missingQty     Int                  @default(0)
+  distribution   TextbookDistribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+  textbook       Textbook             @relation(fields: [textbookId], references: [id])
+}
+
+// Individual distribution to teachers or students
+model IndividualTextbookDistribution {
+  id            Int       @id @default(autoincrement())
+  textbookId    Int
+  textbook      Textbook  @relation(fields: [textbookId], references: [id])
+  recipientType String    // "teacher" or "student"
+  recipientId   Int       // Teacher.id or Student.id
+  recipientName String    // Full name for easy display
+  quantity      Int       @default(1)
+  academicYear  String
+  distributedAt DateTime  @default(now())
+  returnedAt    DateTime?
+  returnedQty   Int       @default(0)
+  missingQty    Int       @default(0)
+  status        String    @default("distributed") // distributed, returned, partial
+  notes         String?
+  returnNotes   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// ==========================================
+// CERTIFICATE AWARD MODULE
+// ==========================================
+
+model LibraryEvent {
+  id           Int      @id @default(autoincrement())
+  title        String
+  topic        String?
+  eventDate    DateTime
+  eventTime    String?
+  participants String?
+  content      String?
+  notes        String?
+  photo        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    Int?
+}
+
+model CertificateAward {
+  id           Int      @id @default(autoincrement())
+  type         String   // 'monthly' | 'yearly'
+  category     String   // 'student' | 'class'
+  rank         Int      // 1, 2, 3
+  awardee      String   // Student name or class name (e.g. "9A")
+  awardeeId    Int?     // Student ID (null for class)
+  grade        String?  // Grade info
+  booksRead    Int      // Number of books read
+  period       String   // "2026-01" (monthly) or "2026" (yearly)
+  academicYear String?  // "2025-2026"
+  createdAt    DateTime @default(now())
 }

@@ -9,14 +9,16 @@
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
     "dev:electron": "wait-on http://localhost:5173 && electron .",
-    "build": "tsc && vite build && npm run build:electron",
+    "build": "npm run prisma:generate && tsc && vite build && npm run build:electron",
     "build:electron": "tsc -p tsconfig.electron.json",
-    "package": "npm run build && electron-builder --win",
+    "package": "npm run build && electron-builder --win --dir && node scripts/patch-icon.js && electron-builder --win --prepackaged build-output/win-unpacked",
+    "postinstall": "prisma generate",
     "lint": "eslint src --ext .ts,.tsx",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:studio": "prisma studio",
+    "generate-license": "ts-node scripts/generate-license.ts",
     "server:dev": "cd server && npm run dev",
     "server:build": "cd server && npm run build",
     "server:start": "cd server && npm run start"
@@ -29,12 +31,14 @@
     "@mui/x-data-grid": "^6.19.2",
     "@mui/x-date-pickers": "^6.19.2",
     "@prisma/client": "^5.9.0",
+    "@types/jsbarcode": "^3.11.4",
     "axios": "^1.6.7",
     "bcryptjs": "^2.4.3",
     "bwip-js": "^4.1.1",
     "date-fns": "^2.30.0",
     "exceljs": "^4.4.0",
     "i18next": "^23.8.1",
+    "jsbarcode": "^3.12.3",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.1",
@@ -45,6 +49,8 @@
     "react-router-dom": "^6.22.0",
     "react-to-print": "^2.15.1",
     "react-toastify": "^10.0.4",
+    "recharts": "^3.7.0",
+    "xlsx": "^0.18.5",
     "zustand": "^4.5.0"
   },
   "devDependencies": {
@@ -57,13 +63,16 @@
     "@typescript-eslint/eslint-plugin": "^6.20.0",
     "@typescript-eslint/parser": "^6.20.0",
     "@vitejs/plugin-react": "^4.2.1",
+    "canvas": "^3.2.1",
     "concurrently": "^8.2.2",
     "electron": "^28.2.0",
     "electron-builder": "^24.9.1",
     "eslint": "^8.56.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
+    "png-to-ico": "^3.0.1",
     "prisma": "^5.9.0",
+    "rcedit": "^5.0.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
     "vite": "^5.0.12",
@@ -73,29 +82,58 @@
     "appId": "com.school.library",
     "productName": "School Library",
     "directories": {
-      "output": "release"
+      "output": "build-output"
     },
+    "asarUnpack": [
+      "node_modules/.prisma/**/*",
+      "node_modules/@prisma/engines/**/*"
+    ],
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
       "prisma/**/*",
+      "node_modules/@prisma/client/**/*",
       "node_modules/.prisma/**/*"
     ],
     "extraResources": [
       {
         "from": "prisma",
         "to": "prisma"
+      },
+      {
+        "from": "node_modules/.prisma",
+        "to": "node_modules/.prisma"
+      },
+      {
+        "from": "node_modules/@prisma/client",
+        "to": "node_modules/@prisma/client"
+      },
+      {
+        "from": "node_modules/@prisma/engines",
+        "to": "node_modules/@prisma/engines"
+      },
+      {
+        "from": "public/icon.png",
+        "to": "icon.png"
       }
     ],
     "win": {
       "target": [
         "nsis"
       ],
-      "icon": "public/icon.ico"
+      "icon": "public/icon.ico",
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "public/icon.ico",
+      "uninstallerIcon": "public/icon.ico",
+      "installerHeaderIcon": "public/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "School Library"
     }
   }
 }

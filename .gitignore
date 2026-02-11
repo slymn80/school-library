@@ -5,6 +5,10 @@ node_modules/
 dist/
 dist-electron/
 release/
+build-output/
+*.tsbuildinfo
+vite.config.d.ts
+vite.config.js
 
 # Database
 *.db
@@ -43,3 +47,11 @@ coverage/
 
 # Electron cache
 .electron/
+
+# Claude Code
+.claude/
+
+# Misc
+nul
+*.xlsx
+test/

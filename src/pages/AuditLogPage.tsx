@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { format, parseISO } from 'date-fns';
-import { ru, kk } from 'date-fns/locale';
+import { ru, kk, tr, enUS } from 'date-fns/locale';
 import { toast } from 'react-toastify';
 import { AuditLog } from '../types';
 
@@ -24,7 +24,7 @@ const AuditLogPage: React.FC = () => {
   const [actionFilter, setActionFilter] = useState('');
   const [entityFilter, setEntityFilter] = useState('');
 
-  const locale = i18n.language === 'kk' ? kk : ru;
+  const locale = i18n.language === 'kk' ? kk : i18n.language === 'tr' ? tr : i18n.language === 'en' ? enUS : ru;
 
   const actionTypes = [
     'LOGIN',
@@ -46,11 +46,16 @@ const AuditLogPage: React.FC = () => {
       if (entityFilter) filters.entityType = entityFilter;
 
       const response = await window.electronAPI.audit.getAll(filters);
-      if (response.success) {
-        setLogs(response.data);
+      if (response.success && response.data) {
+        setLogs(response.data || []);
+      } else {
+        console.error('Failed to fetch audit logs:', response.error);
+        setLogs([]);
       }
     } catch (error) {
+      console.error('Error fetching audit logs:', error);
       toast.error(t('errors.general'));
+      setLogs([]);
     } finally {
       setLoading(false);
     }
@@ -65,8 +70,16 @@ const AuditLogPage: React.FC = () => {
       field: 'timestamp',
       headerName: t('audit.timestamp'),
       width: 180,
-      valueFormatter: (params) =>
-        format(parseISO(params.value), 'dd.MM.yyyy HH:mm:ss', { locale }),
+      renderCell: (params: GridRenderCellParams) => {
+        try {
+          const value = params.row.timestamp;
+          if (!value) return '-';
+          const date = typeof value === 'string' ? parseISO(value) : new Date(value);
+          return format(date, 'dd.MM.yyyy HH:mm:ss', { locale });
+        } catch {
+          return '-';
+        }
+      },
     },
     {
       field: 'actorUser',
@@ -165,28 +178,31 @@ const AuditLogPage: React.FC = () => {
       </Card>
 
       <Card>
-        <CardContent sx={{ height: 600 }}>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <DataGrid
-              rows={logs}
-              columns={columns}
-              pageSizeOptions={[10, 25, 50, 100]}
-              initialState={{
-                pagination: { paginationModel: { pageSize: 25 } },
-              }}
-              disableRowSelectionOnClick
-              localeText={{
-                noRowsLabel: t('common.noData'),
-                MuiTablePagination: {
-                  labelRowsPerPage: '',
-                },
-              }}
-            />
-          )}
+        <CardContent>
+          <Box sx={{ height: 600, width: '100%' }}>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <DataGrid
+                rows={logs}
+                columns={columns}
+                getRowId={(row) => row.id}
+                pageSizeOptions={[10, 25, 50, 100]}
+                initialState={{
+                  pagination: { paginationModel: { pageSize: 25 } },
+                }}
+                disableRowSelectionOnClick
+                localeText={{
+                  noRowsLabel: t('common.noData'),
+                  MuiTablePagination: {
+                    labelRowsPerPage: '',
+                  },
+                }}
+              />
+            )}
+          </Box>
         </CardContent>
       </Card>
     </Box>

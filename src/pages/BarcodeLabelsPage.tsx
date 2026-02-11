@@ -94,9 +94,9 @@ const BarcodeLabelsPage: React.FC = () => {
     documentTitle: 'Barcode Labels',
   });
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     const selectedBooksData = books.filter((b) => selectedBooks.includes(b.id));
-    exportLabelsToPdf(selectedBooksData, barcodes, labelTemplate, showTitle, t);
+    await exportLabelsToPdf(selectedBooksData, barcodes, labelTemplate, showTitle, t);
     toast.success(t('common.success'));
   };
 
@@ -132,7 +132,7 @@ const BarcodeLabelsPage: React.FC = () => {
           <Button
             variant="outlined"
             startIcon={<BackIcon />}
-            onClick={() => navigate('/books')}
+            onClick={() => navigate('/library/books')}
           >
             {t('common.back')}
           </Button>

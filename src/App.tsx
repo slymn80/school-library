@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { CircularProgress, Box } from '@mui/material';
 import { useAuthStore } from './store/authStore';
 import Layout from './components/Layout';
+import TextbookLayout from './components/TextbookLayout';
 import LoginPage from './pages/LoginPage';
+import LicensePage from './pages/LicensePage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
+import ModuleSelectionPage from './pages/ModuleSelectionPage';
 import DashboardPage from './pages/DashboardPage';
 import BooksPage from './pages/BooksPage';
 import BookFormPage from './pages/BookFormPage';
@@ -17,13 +21,26 @@ import UsersPage from './pages/UsersPage';
 import UserFormPage from './pages/UserFormPage';
 import AuditLogPage from './pages/AuditLogPage';
 import BarcodeLabelsPage from './pages/BarcodeLabelsPage';
+import StatisticsPage from './pages/StatisticsPage';
+import CertificatesPage from './pages/CertificatesPage';
+import InventoryCountPage from './pages/InventoryCountPage';
+import LibraryEventsPage from './pages/LibraryEventsPage';
+
+// Textbook Module Pages
+import TextbookDashboardPage from './pages/textbook/TextbookDashboardPage';
+import TeachersPage from './pages/textbook/TeachersPage';
+import BranchesPage from './pages/textbook/BranchesPage';
+import TextbooksPage from './pages/textbook/TextbooksPage';
+import SetsPage from './pages/textbook/SetsPage';
+import DistributionsPage from './pages/textbook/DistributionsPage';
+import IndividualDistributionsPage from './pages/textbook/IndividualDistributionsPage';
+import TextbookSettingsPage from './pages/textbook/TextbookSettingsPage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requireAdmin?: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin = false }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, user } = useAuthStore();
 
   if (!isAuthenticated) {
@@ -34,7 +51,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin 
     return <Navigate to="/change-password" replace />;
   }
 
-  if (requireAdmin && user?.role !== 'ADMIN') {
+  return <>{children}</>;
+};
+
+const AdminRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const { user } = useAuthStore();
+
+  if (user?.role !== 'ADMIN') {
     return <Navigate to="/" replace />;
   }
 
@@ -43,6 +66,38 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin 
 
 const App: React.FC = () => {
   const { isAuthenticated, user } = useAuthStore();
+  const [licenseValid, setLicenseValid] = useState(false);
+  const [licenseLoading, setLicenseLoading] = useState(true);
+
+  useEffect(() => {
+    checkLicense();
+  }, []);
+
+  const checkLicense = async () => {
+    try {
+      const response = await window.electronAPI.license.getStatus();
+      if (response.success && response.data.isValid && !response.data.isTrial) {
+        // Only auto-skip for full (non-trial) licenses
+        setLicenseValid(true);
+      }
+    } catch (err) {
+      console.error('License check failed:', err);
+    } finally {
+      setLicenseLoading(false);
+    }
+  };
+
+  if (licenseLoading) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!licenseValid) {
+    return <LicensePage onLicenseValid={() => setLicenseValid(true)} />;
+  }
 
   return (
     <Routes>
@@ -61,8 +116,19 @@ const App: React.FC = () => {
         }
       />
 
+      {/* Module Selection */}
       <Route
         path="/"
+        element={
+          <ProtectedRoute>
+            <ModuleSelectionPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Library Module Routes */}
+      <Route
+        path="/library"
         element={
           <ProtectedRoute>
             <Layout />
@@ -85,41 +151,68 @@ const App: React.FC = () => {
 
         <Route path="reports" element={<ReportsPage />} />
 
+        <Route path="statistics" element={<StatisticsPage />} />
+
+        <Route path="certificates" element={<CertificatesPage />} />
+
+        <Route path="inventory-count" element={<InventoryCountPage />} />
+
+        <Route path="events" element={<LibraryEventsPage />} />
+
         <Route path="settings" element={<SettingsPage />} />
 
         <Route
           path="users"
           element={
-            <ProtectedRoute requireAdmin>
+            <AdminRoute>
               <UsersPage />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
         <Route
           path="users/new"
           element={
-            <ProtectedRoute requireAdmin>
+            <AdminRoute>
               <UserFormPage />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
         <Route
           path="users/:id/edit"
           element={
-            <ProtectedRoute requireAdmin>
+            <AdminRoute>
               <UserFormPage />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
 
         <Route
           path="audit"
           element={
-            <ProtectedRoute requireAdmin>
+            <AdminRoute>
               <AuditLogPage />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
+      </Route>
+
+      {/* Textbook Distribution Module Routes */}
+      <Route
+        path="/textbooks"
+        element={
+          <ProtectedRoute>
+            <TextbookLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<TextbookDashboardPage />} />
+        <Route path="teachers" element={<TeachersPage />} />
+        <Route path="branches" element={<BranchesPage />} />
+        <Route path="books" element={<TextbooksPage />} />
+        <Route path="sets" element={<SetsPage />} />
+        <Route path="distributions" element={<DistributionsPage />} />
+        <Route path="individual" element={<IndividualDistributionsPage />} />
+        <Route path="settings" element={<TextbookSettingsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

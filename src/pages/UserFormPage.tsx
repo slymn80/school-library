@@ -91,7 +91,7 @@ const UserFormPage: React.FC = () => {
 
       if (response.success) {
         toast.success(t('users.saveSuccess'));
-        navigate('/users');
+        navigate('/library/users');
       } else {
         if (response.error === 'USERNAME_EXISTS') {
           toast.error(t('users.usernameExists'));
@@ -209,7 +209,7 @@ const UserFormPage: React.FC = () => {
               </Button>
               <Button
                 variant="outlined"
-                onClick={() => navigate('/users')}
+                onClick={() => navigate('/library/users')}
                 disabled={loading}
               >
                 {t('common.cancel')}

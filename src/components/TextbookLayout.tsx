@@ -24,26 +24,22 @@ import {
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
-  MenuBook as BooksIcon,
-  School as StudentsIcon,
-  SwapHoriz as LoansIcon,
-  Assessment as ReportsIcon,
-  BarChart as StatisticsIcon,
-  EmojiEvents as EmojiEventsIcon,
+  Person as TeachersIcon,
+  Class as BranchesIcon,
+  AutoStories as TextbooksIcon,
+  Inventory as SetsIcon,
+  LocalShipping as DistributionsIcon,
+  PersonAdd as IndividualDistIcon,
   Settings as SettingsIcon,
-  People as UsersIcon,
-  History as AuditIcon,
   AccountCircle,
   Logout as LogoutIcon,
-  Inventory as InventoryIcon,
   ArrowBack as BackIcon,
-  Event as EventIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '../store/authStore';
 
 const drawerWidth = 260;
 
-const Layout: React.FC = () => {
+const TextbookLayout: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -121,21 +117,14 @@ const Layout: React.FC = () => {
   };
 
   const menuItems = [
-    { text: t('nav.dashboard'), icon: <DashboardIcon />, path: '/library' },
-    { text: t('nav.books'), icon: <BooksIcon />, path: '/library/books' },
-    { text: t('nav.students'), icon: <StudentsIcon />, path: '/library/students' },
-    { text: t('nav.loans'), icon: <LoansIcon />, path: '/library/loans' },
-    { text: t('nav.inventoryCount'), icon: <InventoryIcon />, path: '/library/inventory-count' },
-    { text: t('nav.reports'), icon: <ReportsIcon />, path: '/library/reports' },
-    { text: t('nav.statistics'), icon: <StatisticsIcon />, path: '/library/statistics' },
-    { text: t('nav.certificates'), icon: <EmojiEventsIcon />, path: '/library/certificates' },
-    { text: t('nav.events'), icon: <EventIcon />, path: '/library/events' },
-    { text: t('nav.settings'), icon: <SettingsIcon />, path: '/library/settings' },
-  ];
-
-  const adminMenuItems = [
-    { text: t('nav.users'), icon: <UsersIcon />, path: '/library/users' },
-    { text: t('nav.auditLog'), icon: <AuditIcon />, path: '/library/audit' },
+    { text: t('textbookModule.dashboard'), icon: <DashboardIcon />, path: '/textbooks' },
+    { text: t('textbookModule.teachers'), icon: <TeachersIcon />, path: '/textbooks/teachers' },
+    { text: t('textbookModule.branches'), icon: <BranchesIcon />, path: '/textbooks/branches' },
+    { text: t('textbookModule.textbooks'), icon: <TextbooksIcon />, path: '/textbooks/books' },
+    { text: t('textbookModule.sets'), icon: <SetsIcon />, path: '/textbooks/sets' },
+    { text: t('textbookModule.distributions'), icon: <DistributionsIcon />, path: '/textbooks/distributions' },
+    { text: t('textbookModule.individualDistributions'), icon: <IndividualDistIcon />, path: '/textbooks/individual' },
+    { text: t('textbookModule.settings'), icon: <SettingsIcon />, path: '/textbooks/settings' },
   ];
 
   const drawer = (
@@ -153,7 +142,7 @@ const Layout: React.FC = () => {
           </Typography>
         )}
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-          {t('common.appName')}
+          {t('textbookModule.title')}
         </Typography>
       </Box>
       <Divider />
@@ -174,7 +163,7 @@ const Layout: React.FC = () => {
           <ListItem key={item.text} disablePadding>
             <ListItemButton
               selected={location.pathname === item.path ||
-                (item.path !== '/library' && location.pathname.startsWith(item.path))}
+                (item.path !== '/textbooks' && location.pathname.startsWith(item.path))}
               onClick={() => {
                 navigate(item.path);
                 setMobileOpen(false);
@@ -186,28 +175,6 @@ const Layout: React.FC = () => {
           </ListItem>
         ))}
       </List>
-      {user?.role === 'ADMIN' && (
-        <>
-          <Divider />
-          <List>
-            {adminMenuItems.map((item) => (
-              <ListItem key={item.text} disablePadding>
-                <ListItemButton
-                  selected={location.pathname === item.path ||
-                    location.pathname.startsWith(item.path)}
-                  onClick={() => {
-                    navigate(item.path);
-                    setMobileOpen(false);
-                  }}
-                >
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  <ListItemText primary={item.text} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </>
-      )}
       {licenseStatus && (
         <>
           <Divider />
@@ -236,6 +203,7 @@ const Layout: React.FC = () => {
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
+          backgroundColor: '#7b1fa2', // Purple color to distinguish from library
         }}
       >
         <Toolbar>
@@ -343,4 +311,4 @@ const Layout: React.FC = () => {
   );
 };
 
-export default Layout;
+export default TextbookLayout;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -24,6 +24,31 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [schoolName, setSchoolName] = useState('');
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await window.electronAPI.settings.get();
+        if (response.success && response.data) {
+          let name = response.data.schoolName;
+          if (i18n.language === 'kk') {
+            name = response.data.schoolNameKk;
+          } else if (i18n.language === 'tr') {
+            name = response.data.schoolNameTr;
+          } else if (i18n.language === 'en') {
+            name = response.data.schoolNameTr || response.data.schoolName;
+          }
+          setSchoolName(name || '');
+          setSchoolLogo(response.data.schoolLogo || null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch settings:', error);
+      }
+    };
+    fetchSettings();
+  }, [i18n.language]);
 
   const handleLanguageChange = (_: React.MouseEvent<HTMLElement>, newLang: string | null) => {
     if (newLang) {
@@ -76,14 +101,29 @@ const LoginPage: React.FC = () => {
               onChange={handleLanguageChange}
               size="small"
             >
-              <ToggleButton value="ru">RU</ToggleButton>
               <ToggleButton value="kk">KK</ToggleButton>
+              <ToggleButton value="ru">RU</ToggleButton>
+              <ToggleButton value="tr">TR</ToggleButton>
+              <ToggleButton value="en">EN</ToggleButton>
             </ToggleButtonGroup>
           </Box>
 
-          <Typography variant="h4" align="center" gutterBottom>
-            {t('common.appName')}
-          </Typography>
+          <Box sx={{ textAlign: 'center', mb: 2 }}>
+            <Box
+              component="img"
+              src={schoolLogo || '/icon.png'}
+              alt="Logo"
+              sx={{ width: 80, height: 80, mb: 1, objectFit: 'contain', borderRadius: 1 }}
+            />
+            {schoolName && (
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', lineHeight: 1.3, mb: 0.5 }}>
+                {schoolName}
+              </Typography>
+            )}
+            <Typography variant="body2" color="textSecondary">
+              {t('common.appName')}
+            </Typography>
+          </Box>
           <Typography variant="h6" align="center" color="textSecondary" sx={{ mb: 3 }}>
             {t('auth.login')}
           </Typography>
