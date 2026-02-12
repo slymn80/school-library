@@ -22,12 +22,15 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Visibility as ViewIcon,
+  PictureAsPdf as PdfIcon,
+  TableChart as ExcelIcon,
 } from '@mui/icons-material';
-import { useAuthStore } from '../store/authStore';
-import { LibraryEvent } from '../types';
+import { useAuthStore } from '../../store/authStore';
+import { LibraryEvent, Settings } from '../../types';
+import { exportEventsListPdf, exportEventsToExcel } from '../../utils/export';
 
-const LibraryEventsPage: React.FC = () => {
-  const { t } = useTranslation();
+const EventsListPage: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const { user } = useAuthStore();
 
   const [events, setEvents] = useState<LibraryEvent[]>([]);
@@ -37,6 +40,7 @@ const LibraryEventsPage: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<LibraryEvent | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [settings, setSettings] = useState<Settings | null>(null);
 
   // Form fields
   const [title, setTitle] = useState('');
@@ -71,6 +75,17 @@ const LibraryEventsPage: React.FC = () => {
 
   useEffect(() => {
     fetchEvents();
+    const fetchSettings = async () => {
+      try {
+        const response = await window.electronAPI.settings.get();
+        if (response.success && response.data) {
+          setSettings(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch settings:', error);
+      }
+    };
+    fetchSettings();
   }, []);
 
   const resetForm = () => {
@@ -188,6 +203,14 @@ const LibraryEventsPage: React.FC = () => {
     }
   };
 
+  const handleExportPdf = async () => {
+    await exportEventsListPdf(events, settings, t, i18n.language);
+  };
+
+  const handleExportExcel = async () => {
+    await exportEventsToExcel(events, t);
+  };
+
   const formatDate = (dateStr: string) => {
     try {
       return new Date(dateStr).toLocaleDateString();
@@ -237,10 +260,18 @@ const LibraryEventsPage: React.FC = () => {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">{t('events.title')}</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd}>
-          {t('events.addEvent')}
-        </Button>
+        <Typography variant="h4">{t('events.allEvents')}</Typography>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="outlined" startIcon={<PdfIcon />} onClick={handleExportPdf}>
+            {t('events.exportPdf')}
+          </Button>
+          <Button variant="outlined" startIcon={<ExcelIcon />} onClick={handleExportExcel}>
+            {t('events.exportExcel')}
+          </Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd} sx={{ backgroundColor: '#2e7d32', '&:hover': { backgroundColor: '#1b5e20' } }}>
+            {t('events.addEvent')}
+          </Button>
+        </Box>
       </Box>
 
       <Paper sx={{ height: 600 }}>
@@ -464,4 +495,4 @@ const LibraryEventsPage: React.FC = () => {
   );
 };
 
-export default LibraryEventsPage;
+export default EventsListPage;

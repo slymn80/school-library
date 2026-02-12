@@ -110,6 +110,7 @@ interface Window {
       create: (data: { fullName: string; phone?: string }, userId: number) => Promise<any>;
       update: (id: number, data: { fullName?: string; phone?: string }, userId: number) => Promise<any>;
       delete: (id: number, userId: number) => Promise<any>;
+      deleteAll: (userId: number, password: string) => Promise<any>;
     };
     branches: {
       getAll: (filters?: { grade?: number }) => Promise<any>;
@@ -117,6 +118,7 @@ interface Window {
       create: (data: { name: string; grade: number; teacherId?: number; studentCount?: number }, userId: number) => Promise<any>;
       update: (id: number, data: { name?: string; grade?: number; teacherId?: number | null; studentCount?: number }, userId: number) => Promise<any>;
       delete: (id: number, userId: number) => Promise<any>;
+      deleteAll: (userId: number, password: string) => Promise<any>;
     };
     textbooks: {
       getAll: (filters?: { search?: string; grade?: number; subject?: string; language?: string }) => Promise<any>;

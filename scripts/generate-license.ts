@@ -12,6 +12,16 @@
  */
 
 import crypto from 'crypto';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const XLSX = require('xlsx');
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // IMPORTANT: This key must match the one in electron/main.ts
 const LICENSE_SECRET = 'SL-2024-K3y-S3cur3-Libr4ry-Mgmt!';
@@ -109,6 +119,47 @@ function main() {
 
   const licenseKey = encrypt(licenseData);
 
+  // Save to Excel file
+  const excelPath = path.join(__dirname, '..', 'licenses.xlsx');
+  const row = {
+    'License ID': licenseData.licenseId,
+    'School': licenseData.schoolName,
+    'Expiry Date': licenseData.expiryDate,
+    'Created At': licenseData.createdAt,
+    'Days': args.days || (args.expiry ? '' : 365),
+    'License Key': licenseKey,
+  };
+
+  let wb: any;
+  let rows: any[] = [];
+
+  if (fs.existsSync(excelPath)) {
+    wb = XLSX.readFile(excelPath);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    rows = XLSX.utils.sheet_to_json(ws);
+  } else {
+    wb = XLSX.utils.book_new();
+  }
+
+  rows.push(row);
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [
+    { wch: 22 },  // License ID
+    { wch: 35 },  // School
+    { wch: 14 },  // Expiry Date
+    { wch: 26 },  // Created At
+    { wch: 8 },   // Days
+    { wch: 60 },  // License Key
+  ];
+
+  if (wb.SheetNames.length > 0) {
+    wb.Sheets[wb.SheetNames[0]] = ws;
+  } else {
+    XLSX.utils.book_append_sheet(wb, ws, 'Licenses');
+  }
+
+  XLSX.writeFile(wb, excelPath);
+
   console.log('');
   console.log('=== LICENSE KEY GENERATED ===');
   console.log('');
@@ -121,6 +172,7 @@ function main() {
   console.log('');
   console.log(licenseKey);
   console.log('');
+  console.log(`Saved to: ${excelPath}`);
   console.log('============================');
 }
 

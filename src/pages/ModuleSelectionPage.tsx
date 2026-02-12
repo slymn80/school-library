@@ -84,7 +84,7 @@ const ModuleSelectionPage: React.FC = () => {
     if (module === 'library') {
       navigate('/library');
     } else if (module === 'events') {
-      navigate('/library/events');
+      navigate('/events');
     } else {
       navigate('/textbooks');
     }

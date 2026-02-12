@@ -104,6 +104,7 @@ export interface TeachersAPI {
   create: (data: { fullName: string; phone?: string }, userId: number) => Promise<any>;
   update: (id: number, data: { fullName?: string; phone?: string }, userId: number) => Promise<any>;
   delete: (id: number, userId: number) => Promise<any>;
+  deleteAll: (userId: number, password: string) => Promise<any>;
 }
 
 export interface BranchesAPI {
@@ -112,6 +113,7 @@ export interface BranchesAPI {
   create: (data: { name: string; grade: number; teacherId?: number; studentCount?: number }, userId: number) => Promise<any>;
   update: (id: number, data: { name?: string; grade?: number; teacherId?: number | null; studentCount?: number }, userId: number) => Promise<any>;
   delete: (id: number, userId: number) => Promise<any>;
+  deleteAll: (userId: number, password: string) => Promise<any>;
 }
 
 export interface TextbooksAPI {
@@ -322,6 +324,7 @@ const electronAPI: ElectronAPI = {
     create: (data, userId) => ipcRenderer.invoke('teachers:create', data, userId),
     update: (id, data, userId) => ipcRenderer.invoke('teachers:update', id, data, userId),
     delete: (id, userId) => ipcRenderer.invoke('teachers:delete', id, userId),
+    deleteAll: (userId, password) => ipcRenderer.invoke('teachers:deleteAll', userId, password),
   },
   branches: {
     getAll: (filters) => ipcRenderer.invoke('branches:getAll', filters),
@@ -329,6 +332,7 @@ const electronAPI: ElectronAPI = {
     create: (data, userId) => ipcRenderer.invoke('branches:create', data, userId),
     update: (id, data, userId) => ipcRenderer.invoke('branches:update', id, data, userId),
     delete: (id, userId) => ipcRenderer.invoke('branches:delete', id, userId),
+    deleteAll: (userId, password) => ipcRenderer.invoke('branches:deleteAll', userId, password),
   },
   textbooks: {
     getAll: (filters) => ipcRenderer.invoke('textbooks:getAll', filters),

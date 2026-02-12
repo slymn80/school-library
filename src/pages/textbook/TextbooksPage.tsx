@@ -39,7 +39,7 @@ import {
 } from '@mui/icons-material';
 import { useAuthStore } from '../../store/authStore';
 import * as XLSX from 'xlsx';
-import { exportTextbookStockReportPdf } from '../../utils/export';
+import { exportTextbookStockReportPdf, exportTextbooksToExcel } from '../../utils/export';
 
 interface Textbook {
   id: number;
@@ -570,6 +570,13 @@ const TextbooksPage: React.FC = () => {
             }}
           >
             {t('textbookModule.reports.printStockReport')}
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={() => exportTextbooksToExcel(textbooks, t, i18n.language)}
+          >
+            {t('textbookModule.exportExcel')}
           </Button>
           <Button
             variant="outlined"

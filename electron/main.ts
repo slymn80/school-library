@@ -2961,6 +2961,45 @@ ipcMain.handle('teachers:delete', async (_, id: number, userId: number) => {
   }
 });
 
+ipcMain.handle('teachers:deleteAll', async (_, userId: number, password: string) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return { success: false, error: 'USER_NOT_FOUND' };
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return { success: false, error: 'INVALID_PASSWORD' };
+    }
+
+    const teachersWithBranches = await prisma.teacher.findMany({
+      where: { branches: { some: {} } },
+      select: { id: true },
+    });
+    const excludeIds = teachersWithBranches.map(t => t.id);
+
+    const deleteResult = await prisma.teacher.deleteMany({
+      where: excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {},
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        actorUserId: userId,
+        actionType: 'DELETE',
+        entityType: 'TEACHER',
+        entityId: 0,
+        details: JSON.stringify({ action: 'DELETE_ALL', deletedCount: deleteResult.count, skippedWithBranches: excludeIds.length }),
+      },
+    });
+
+    return { success: true, data: { deletedCount: deleteResult.count, skippedCount: excludeIds.length } };
+  } catch (error) {
+    console.error('Delete all teachers error:', error);
+    return { success: false, error: 'DELETE_ALL_TEACHERS_ERROR' };
+  }
+});
+
 // Branches handlers
 ipcMain.handle('branches:getAll', async (_, filters?: { grade?: number }) => {
   try {
@@ -3072,6 +3111,47 @@ ipcMain.handle('branches:delete', async (_, id: number, userId: number) => {
   } catch (error) {
     console.error('Delete branch error:', error);
     return { success: false, error: 'DELETE_BRANCH_ERROR' };
+  }
+});
+
+ipcMain.handle('branches:deleteAll', async (_, userId: number, password: string) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return { success: false, error: 'USER_NOT_FOUND' };
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return { success: false, error: 'INVALID_PASSWORD' };
+    }
+
+    // Check if any branches have distributions
+    const branchesWithDistributions = await prisma.branch.findMany({
+      where: { distributions: { some: {} } },
+      select: { id: true },
+    });
+
+    if (branchesWithDistributions.length > 0) {
+      return { success: false, error: 'BRANCHES_HAVE_DISTRIBUTIONS', data: { count: branchesWithDistributions.length } };
+    }
+
+    const deleteResult = await prisma.branch.deleteMany({});
+
+    await prisma.auditLog.create({
+      data: {
+        actorUserId: userId,
+        actionType: 'DELETE',
+        entityType: 'BRANCH',
+        entityId: 0,
+        details: JSON.stringify({ action: 'DELETE_ALL', deletedCount: deleteResult.count }),
+      },
+    });
+
+    return { success: true, data: { deletedCount: deleteResult.count } };
+  } catch (error) {
+    console.error('Delete all branches error:', error);
+    return { success: false, error: 'DELETE_ALL_BRANCHES_ERROR' };
   }
 });
 

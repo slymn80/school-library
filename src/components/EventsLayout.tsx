@@ -24,25 +24,18 @@ import {
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
-  MenuBook as BooksIcon,
-  School as StudentsIcon,
-  SwapHoriz as LoansIcon,
-  Assessment as ReportsIcon,
-  BarChart as StatisticsIcon,
-  EmojiEvents as EmojiEventsIcon,
-  Settings as SettingsIcon,
-  People as UsersIcon,
-  History as AuditIcon,
+  Event as EventIcon,
+  History as HistoryIcon,
+  Assessment as AssessmentIcon,
   AccountCircle,
   Logout as LogoutIcon,
-  Inventory as InventoryIcon,
   ArrowBack as BackIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '../store/authStore';
 
 const drawerWidth = 260;
 
-const Layout: React.FC = () => {
+const EventsLayout: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -120,20 +113,10 @@ const Layout: React.FC = () => {
   };
 
   const menuItems = [
-    { text: t('nav.dashboard'), icon: <DashboardIcon />, path: '/library' },
-    { text: t('nav.books'), icon: <BooksIcon />, path: '/library/books' },
-    { text: t('nav.students'), icon: <StudentsIcon />, path: '/library/students' },
-    { text: t('nav.loans'), icon: <LoansIcon />, path: '/library/loans' },
-    { text: t('nav.inventoryCount'), icon: <InventoryIcon />, path: '/library/inventory-count' },
-    { text: t('nav.reports'), icon: <ReportsIcon />, path: '/library/reports' },
-    { text: t('nav.statistics'), icon: <StatisticsIcon />, path: '/library/statistics' },
-    { text: t('nav.certificates'), icon: <EmojiEventsIcon />, path: '/library/certificates' },
-    { text: t('nav.settings'), icon: <SettingsIcon />, path: '/library/settings' },
-  ];
-
-  const adminMenuItems = [
-    { text: t('nav.users'), icon: <UsersIcon />, path: '/library/users' },
-    { text: t('nav.auditLog'), icon: <AuditIcon />, path: '/library/audit' },
+    { text: t('events.dashboard'), icon: <DashboardIcon />, path: '/events' },
+    { text: t('events.allEvents'), icon: <EventIcon />, path: '/events/list' },
+    { text: t('events.pastEvents'), icon: <HistoryIcon />, path: '/events/past' },
+    { text: t('events.reports'), icon: <AssessmentIcon />, path: '/events/reports' },
   ];
 
   const drawer = (
@@ -151,7 +134,7 @@ const Layout: React.FC = () => {
           </Typography>
         )}
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-          {t('common.appName')}
+          {t('events.moduleTitle')}
         </Typography>
       </Box>
       <Divider />
@@ -163,7 +146,7 @@ const Layout: React.FC = () => {
           onClick={handleBackToModuleSelection}
           size="small"
         >
-          {t('textbookModule.backToLibrary')}
+          {t('events.backToModules')}
         </Button>
       </Box>
       <Divider />
@@ -172,7 +155,7 @@ const Layout: React.FC = () => {
           <ListItem key={item.text} disablePadding>
             <ListItemButton
               selected={location.pathname === item.path ||
-                (item.path !== '/library' && location.pathname.startsWith(item.path))}
+                (item.path !== '/events' && location.pathname.startsWith(item.path))}
               onClick={() => {
                 navigate(item.path);
                 setMobileOpen(false);
@@ -184,28 +167,6 @@ const Layout: React.FC = () => {
           </ListItem>
         ))}
       </List>
-      {user?.role === 'ADMIN' && (
-        <>
-          <Divider />
-          <List>
-            {adminMenuItems.map((item) => (
-              <ListItem key={item.text} disablePadding>
-                <ListItemButton
-                  selected={location.pathname === item.path ||
-                    location.pathname.startsWith(item.path)}
-                  onClick={() => {
-                    navigate(item.path);
-                    setMobileOpen(false);
-                  }}
-                >
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  <ListItemText primary={item.text} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </>
-      )}
       {licenseStatus && (
         <>
           <Divider />
@@ -234,6 +195,7 @@ const Layout: React.FC = () => {
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
+          backgroundColor: '#2e7d32',
         }}
       >
         <Toolbar>
@@ -341,4 +303,4 @@ const Layout: React.FC = () => {
   );
 };
 
-export default Layout;
+export default EventsLayout;

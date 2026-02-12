@@ -3,7 +3,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { addCyrillicFont } from './pdf-fonts';
 import { format, parseISO, differenceInDays } from 'date-fns';
-import { Book, Student, Loan, Settings, LabelTemplate, BookFormData, StudentFormData } from '../types';
+import { Book, Student, Loan, Settings, LabelTemplate, BookFormData, StudentFormData, LibraryEvent } from '../types';
 import { TFunction } from 'i18next';
 
 export interface ImportResult {
@@ -1377,6 +1377,428 @@ export async function exportYearlyClassCertificatePdf(
 }
 
 // ==========================================
+// TEXTBOOK MODULE EXCEL EXPORTS
+// ==========================================
+
+export async function exportTeachersToExcel(
+  teachers: any[],
+  t: TFunction
+) {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(t('textbookModule.teachersList'));
+
+  worksheet.columns = [
+    { header: '#', key: 'num', width: 8 },
+    { header: t('textbookModule.teacherName'), key: 'fullName', width: 35 },
+    { header: t('textbookModule.phone'), key: 'phone', width: 20 },
+    { header: t('textbookModule.assignedBranches'), key: 'branches', width: 30 },
+  ];
+
+  worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  worksheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF6A1B9A' },
+  };
+
+  teachers.forEach((teacher, i) => {
+    const branchesStr = teacher.branches?.map((b: any) => `${b.grade}${b.name}`).join(', ') || '-';
+    worksheet.addRow({
+      num: i + 1,
+      fullName: teacher.fullName,
+      phone: teacher.phone || '-',
+      branches: branchesStr,
+    });
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `teachers_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function exportBranchesToExcel(
+  branches: any[],
+  t: TFunction
+) {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(t('textbookModule.branchesList'));
+
+  worksheet.columns = [
+    { header: '#', key: 'num', width: 8 },
+    { header: t('textbookModule.grade'), key: 'grade', width: 10 },
+    { header: t('textbookModule.branchLetter'), key: 'letter', width: 12 },
+    { header: t('textbookModule.classTeacher'), key: 'teacher', width: 30 },
+    { header: t('textbookModule.studentCount'), key: 'studentCount', width: 18 },
+  ];
+
+  worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  worksheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF6A1B9A' },
+  };
+
+  branches.forEach((branch, i) => {
+    worksheet.addRow({
+      num: i + 1,
+      grade: branch.grade,
+      letter: branch.name,
+      teacher: branch.teacher?.fullName || '-',
+      studentCount: branch.studentCount,
+    });
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `branches_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function exportTextbooksToExcel(
+  textbooks: any[],
+  t: TFunction,
+  _language: string
+) {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(t('textbookModule.textbooks'));
+
+  const langMap: { [key: string]: string } = {
+    kk: 'Қазақша', ru: 'Русский', en: 'English', tr: 'Türkçe',
+  };
+
+  worksheet.columns = [
+    { header: '#', key: 'num', width: 8 },
+    { header: t('textbookModule.author'), key: 'author', width: 25 },
+    { header: t('textbookModule.textbookTitle'), key: 'title', width: 40 },
+    { header: t('textbookModule.subject'), key: 'subject', width: 15 },
+    { header: t('textbookModule.grade'), key: 'grade', width: 10 },
+    { header: t('textbookModule.language'), key: 'language', width: 12 },
+    { header: t('textbookModule.publisher'), key: 'publisher', width: 18 },
+    { header: t('textbookModule.yearPublished'), key: 'year', width: 10 },
+    { header: 'ISBN', key: 'isbn', width: 18 },
+    { header: t('textbookModule.price'), key: 'price', width: 12 },
+    { header: t('textbookModule.totalStock'), key: 'totalStock', width: 12 },
+    { header: t('textbookModule.currentStock'), key: 'availableStock', width: 12 },
+  ];
+
+  worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  worksheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF6A1B9A' },
+  };
+
+  textbooks.forEach((tb, i) => {
+    const gradeStr = tb.gradeTo && tb.gradeTo !== tb.gradeFrom
+      ? `${tb.gradeFrom}-${tb.gradeTo}`
+      : `${tb.gradeFrom}`;
+    worksheet.addRow({
+      num: i + 1,
+      author: tb.author || '-',
+      title: tb.title,
+      subject: tb.subject,
+      grade: gradeStr,
+      language: langMap[tb.language] || tb.language || '-',
+      publisher: tb.publisher || '-',
+      year: tb.yearPublished || '-',
+      isbn: tb.isbn || '-',
+      price: tb.price ? `${tb.price} ₸` : '-',
+      totalStock: tb.totalStock || 0,
+      availableStock: tb.availableStock || 0,
+    });
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `textbooks_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function exportDistributionsToExcel(
+  distributions: any[],
+  t: TFunction
+) {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(t('textbookModule.distributions'));
+
+  const getStatusLabel = (s: string) => {
+    if (s === 'distributed') return t('textbookModule.distributed');
+    if (s === 'returned') return t('textbookModule.returned');
+    if (s === 'partial') return t('textbookModule.partial');
+    return s;
+  };
+
+  worksheet.columns = [
+    { header: '#', key: 'num', width: 8 },
+    { header: t('textbookModule.branch'), key: 'branch', width: 15 },
+    { header: t('textbookModule.set'), key: 'set', width: 25 },
+    { header: t('textbookModule.teacher'), key: 'teacher', width: 25 },
+    { header: t('textbookModule.academicYear'), key: 'academicYear', width: 15 },
+    { header: t('textbookModule.distributionDate'), key: 'date', width: 15 },
+    { header: t('textbookModule.status'), key: 'status', width: 15 },
+  ];
+
+  worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  worksheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF6A1B9A' },
+  };
+
+  distributions.forEach((d, i) => {
+    worksheet.addRow({
+      num: i + 1,
+      branch: `${d.branch?.grade || ''}${d.branch?.name || ''}`,
+      set: d.set?.name || '-',
+      teacher: d.branch?.teacher?.fullName || '-',
+      academicYear: d.academicYear,
+      date: d.distributedAt ? new Date(d.distributedAt).toLocaleDateString() : '-',
+      status: getStatusLabel(d.status),
+    });
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `distributions_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function exportIndividualDistributionsToExcel(
+  distributions: any[],
+  t: TFunction
+) {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(t('textbookModule.individualDistributions'));
+
+  const getStatusLabel = (s: string) => {
+    if (s === 'distributed') return t('textbookModule.distributed');
+    if (s === 'returned') return t('textbookModule.returned');
+    if (s === 'partial') return t('textbookModule.partial');
+    return s;
+  };
+
+  const getRecipientTypeLabel = (rt: string) => {
+    if (rt === 'teacher') return t('textbookModule.teacher');
+    if (rt === 'student') return t('textbookModule.student');
+    return rt;
+  };
+
+  worksheet.columns = [
+    { header: '#', key: 'num', width: 8 },
+    { header: t('textbookModule.textbook'), key: 'textbook', width: 35 },
+    { header: t('textbookModule.recipientType'), key: 'recipientType', width: 15 },
+    { header: t('textbookModule.recipientName'), key: 'recipientName', width: 25 },
+    { header: t('textbookModule.quantity'), key: 'quantity', width: 10 },
+    { header: t('textbookModule.distributedAt'), key: 'date', width: 15 },
+    { header: t('textbookModule.status'), key: 'status', width: 15 },
+    { header: t('textbookModule.returned'), key: 'returned', width: 10 },
+    { header: t('textbookModule.missing'), key: 'missing', width: 10 },
+  ];
+
+  worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  worksheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF6A1B9A' },
+  };
+
+  distributions.forEach((d, i) => {
+    worksheet.addRow({
+      num: i + 1,
+      textbook: d.textbook?.title || '-',
+      recipientType: getRecipientTypeLabel(d.recipientType),
+      recipientName: d.recipientName || '-',
+      quantity: d.quantity || 0,
+      date: d.distributedAt ? new Date(d.distributedAt).toLocaleDateString() : '-',
+      status: getStatusLabel(d.status),
+      returned: d.returnedQty || 0,
+      missing: d.missingQty || 0,
+    });
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `individual_distributions_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// ==========================================
+// TEXTBOOK MODULE PDF LIST EXPORTS
+// ==========================================
+
+export async function exportTeachersListPdf(
+  teachers: any[],
+  settings: Settings | null,
+  t: TFunction,
+  language: string
+): Promise<void> {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  await addCyrillicFont(doc);
+
+  const pageWidth = 210;
+  const schoolName = getSchoolNameForLang(settings, language);
+  const themeColor: [number, number, number] = [106, 27, 154];
+
+  let yPos = 15;
+
+  if (settings?.schoolLogo) {
+    try {
+      doc.addImage(settings.schoolLogo, 'PNG', pageWidth / 2 - 10, yPos, 20, 20);
+      yPos += 25;
+    } catch (e) { /* ignore */ }
+  }
+
+  doc.setFontSize(14);
+  doc.setTextColor(0, 0, 0);
+  doc.text(schoolName, pageWidth / 2, yPos, { align: 'center' });
+  yPos += 10;
+
+  doc.setFontSize(16);
+  doc.setTextColor(...themeColor);
+  doc.text(t('textbookModule.teachersList').toUpperCase(), pageWidth / 2, yPos, { align: 'center' });
+  yPos += 8;
+
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`${t('textbookModule.reports.reportDate')}: ${format(new Date(), 'dd.MM.yyyy')}`, pageWidth / 2, yPos, { align: 'center' });
+  yPos += 10;
+
+  const tableData = teachers.map((teacher, i) => [
+    (i + 1).toString(),
+    teacher.fullName,
+    teacher.phone || '-',
+    teacher.branches?.map((b: any) => `${b.grade}${b.name}`).join(', ') || '-',
+  ]);
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [[
+      '#',
+      t('textbookModule.teacherName'),
+      t('textbookModule.phone'),
+      t('textbookModule.assignedBranches'),
+    ]],
+    body: tableData,
+    styles: { fontSize: 9, font: 'Roboto' },
+    headStyles: { fillColor: themeColor, font: 'Roboto' },
+    columnStyles: {
+      0: { cellWidth: 10 },
+    },
+  });
+
+  const finalY = (doc as any).lastAutoTable.finalY || yPos;
+
+  const sigY = Math.max(finalY + 25, 250);
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+
+  doc.line(20, sigY, 80, sigY);
+  doc.text(settings?.librarianName || t('certificates.librarianName'), 50, sigY + 5, { align: 'center' });
+
+  doc.line(130, sigY, 190, sigY);
+  doc.text(settings?.principalName || t('certificates.principalName'), 160, sigY + 5, { align: 'center' });
+
+  doc.save(`teachers_list_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+}
+
+export async function exportBranchesListPdf(
+  branches: any[],
+  settings: Settings | null,
+  t: TFunction,
+  language: string
+): Promise<void> {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  await addCyrillicFont(doc);
+
+  const pageWidth = 210;
+  const schoolName = getSchoolNameForLang(settings, language);
+  const themeColor: [number, number, number] = [106, 27, 154];
+
+  let yPos = 15;
+
+  if (settings?.schoolLogo) {
+    try {
+      doc.addImage(settings.schoolLogo, 'PNG', pageWidth / 2 - 10, yPos, 20, 20);
+      yPos += 25;
+    } catch (e) { /* ignore */ }
+  }
+
+  doc.setFontSize(14);
+  doc.setTextColor(0, 0, 0);
+  doc.text(schoolName, pageWidth / 2, yPos, { align: 'center' });
+  yPos += 10;
+
+  doc.setFontSize(16);
+  doc.setTextColor(...themeColor);
+  doc.text(t('textbookModule.branchesList').toUpperCase(), pageWidth / 2, yPos, { align: 'center' });
+  yPos += 8;
+
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`${t('textbookModule.reports.reportDate')}: ${format(new Date(), 'dd.MM.yyyy')}`, pageWidth / 2, yPos, { align: 'center' });
+  yPos += 10;
+
+  const tableData = branches.map((branch, i) => [
+    (i + 1).toString(),
+    `${branch.grade}${branch.name}`,
+    branch.teacher?.fullName || '-',
+    branch.studentCount.toString(),
+  ]);
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [[
+      '#',
+      t('textbookModule.branchName'),
+      t('textbookModule.classTeacher'),
+      t('textbookModule.studentCount'),
+    ]],
+    body: tableData,
+    styles: { fontSize: 9, font: 'Roboto' },
+    headStyles: { fillColor: themeColor, font: 'Roboto' },
+    columnStyles: {
+      0: { cellWidth: 10 },
+      3: { halign: 'center' },
+    },
+  });
+
+  const finalY = (doc as any).lastAutoTable.finalY || yPos;
+
+  const sigY = Math.max(finalY + 25, 250);
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+
+  doc.line(20, sigY, 80, sigY);
+  doc.text(settings?.librarianName || t('certificates.librarianName'), 50, sigY + 5, { align: 'center' });
+
+  doc.line(130, sigY, 190, sigY);
+  doc.text(settings?.principalName || t('certificates.principalName'), 160, sigY + 5, { align: 'center' });
+
+  doc.save(`branches_list_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+}
+
+// ==========================================
 // TEXTBOOK MODULE PDF REPORTS
 // ==========================================
 
@@ -1855,4 +2277,131 @@ export async function exportTextbookSummaryReportPdf(
   doc.text(t('textbookModule.reports.signature'), 160, sigY + 10, { align: 'center' });
 
   doc.save(`textbook_summary_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+}
+
+// ==========================================
+// EVENTS MODULE EXPORTS
+// ==========================================
+
+export async function exportEventsToExcel(
+  events: LibraryEvent[],
+  t: TFunction
+) {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(t('events.eventsList'));
+
+  worksheet.columns = [
+    { header: '#', key: 'num', width: 8 },
+    { header: t('events.eventTitle'), key: 'title', width: 35 },
+    { header: t('events.topic'), key: 'topic', width: 25 },
+    { header: t('events.eventDate'), key: 'eventDate', width: 15 },
+    { header: t('events.eventTime'), key: 'eventTime', width: 12 },
+    { header: t('events.participants'), key: 'participants', width: 30 },
+  ];
+
+  worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  worksheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF2E7D32' },
+  };
+
+  events.forEach((event, i) => {
+    worksheet.addRow({
+      num: i + 1,
+      title: event.title,
+      topic: event.topic || '-',
+      eventDate: event.eventDate ? new Date(event.eventDate).toLocaleDateString() : '-',
+      eventTime: event.eventTime || '-',
+      participants: event.participants || '-',
+    });
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `events_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function exportEventsListPdf(
+  events: LibraryEvent[],
+  settings: Settings | null,
+  t: TFunction,
+  language: string
+): Promise<void> {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  await addCyrillicFont(doc);
+
+  const pageWidth = 210;
+  const schoolName = getSchoolNameForLang(settings, language);
+  const themeColor: [number, number, number] = [46, 125, 50];
+
+  let yPos = 15;
+
+  if (settings?.schoolLogo) {
+    try {
+      doc.addImage(settings.schoolLogo, 'PNG', pageWidth / 2 - 10, yPos, 20, 20);
+      yPos += 25;
+    } catch (e) { /* ignore */ }
+  }
+
+  doc.setFontSize(14);
+  doc.setTextColor(0, 0, 0);
+  doc.text(schoolName, pageWidth / 2, yPos, { align: 'center' });
+  yPos += 10;
+
+  doc.setFontSize(16);
+  doc.setTextColor(...themeColor);
+  doc.text(t('events.eventsList').toUpperCase(), pageWidth / 2, yPos, { align: 'center' });
+  yPos += 8;
+
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`${format(new Date(), 'dd.MM.yyyy')}`, pageWidth / 2, yPos, { align: 'center' });
+  yPos += 10;
+
+  const tableData = events.map((event, i) => [
+    (i + 1).toString(),
+    event.title,
+    event.topic || '-',
+    event.eventDate ? new Date(event.eventDate).toLocaleDateString() : '-',
+    event.eventTime || '-',
+    event.participants || '-',
+  ]);
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [[
+      '#',
+      t('events.eventTitle'),
+      t('events.topic'),
+      t('events.eventDate'),
+      t('events.eventTime'),
+      t('events.participants'),
+    ]],
+    body: tableData,
+    styles: { fontSize: 8, font: 'Roboto' },
+    headStyles: { fillColor: themeColor, font: 'Roboto' },
+    columnStyles: {
+      0: { cellWidth: 10 },
+    },
+  });
+
+  const finalY = (doc as any).lastAutoTable.finalY || yPos;
+
+  const sigY = Math.max(finalY + 25, 250);
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+
+  doc.line(20, sigY, 80, sigY);
+  doc.text(settings?.librarianName || t('certificates.librarianName'), 50, sigY + 5, { align: 'center' });
+
+  doc.line(130, sigY, 190, sigY);
+  doc.text(settings?.principalName || t('certificates.principalName'), 160, sigY + 5, { align: 'center' });
+
+  doc.save(`events_list_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 }

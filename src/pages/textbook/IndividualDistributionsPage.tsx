@@ -29,9 +29,10 @@ import {
   Search as SearchIcon,
   Undo as UndoIcon,
   PictureAsPdf as PdfIcon,
+  FileDownload as DownloadIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '../../store/authStore';
-import { exportTextbookIndividualDistReportPdf } from '../../utils/export';
+import { exportTextbookIndividualDistReportPdf, exportIndividualDistributionsToExcel } from '../../utils/export';
 
 interface IndividualDistribution {
   id: number;
@@ -407,6 +408,13 @@ const IndividualDistributionsPage: React.FC = () => {
             }}
           >
             {t('textbookModule.reports.printReport')}
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={() => exportIndividualDistributionsToExcel(distributions, t)}
+          >
+            {t('textbookModule.exportExcel')}
           </Button>
           <Button
             variant="contained"

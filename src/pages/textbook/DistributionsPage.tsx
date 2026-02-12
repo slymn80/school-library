@@ -32,9 +32,10 @@ import {
   AssignmentReturn as ReturnIcon,
   Visibility as ViewIcon,
   PictureAsPdf as PdfIcon,
+  FileDownload as DownloadIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '../../store/authStore';
-import { exportTextbookDistributionReportPdf } from '../../utils/export';
+import { exportTextbookDistributionReportPdf, exportDistributionsToExcel } from '../../utils/export';
 
 interface Branch {
   id: number;
@@ -422,13 +423,22 @@ const DistributionsPage: React.FC = () => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">{t('textbookModule.distributions')}</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenDialog}
-        >
-          {t('textbookModule.newDistribution')}
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={() => exportDistributionsToExcel(distributions, t)}
+          >
+            {t('textbookModule.exportExcel')}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenDialog}
+          >
+            {t('textbookModule.newDistribution')}
+          </Button>
+        </Box>
       </Box>
 
       {/* Filters */}

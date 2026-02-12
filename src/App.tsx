@@ -24,7 +24,12 @@ import BarcodeLabelsPage from './pages/BarcodeLabelsPage';
 import StatisticsPage from './pages/StatisticsPage';
 import CertificatesPage from './pages/CertificatesPage';
 import InventoryCountPage from './pages/InventoryCountPage';
-import LibraryEventsPage from './pages/LibraryEventsPage';
+// Events Module Pages
+import EventsLayout from './components/EventsLayout';
+import EventsDashboardPage from './pages/events/EventsDashboardPage';
+import EventsListPage from './pages/events/EventsListPage';
+import PastEventsPage from './pages/events/PastEventsPage';
+import EventReportsPage from './pages/events/EventReportsPage';
 
 // Textbook Module Pages
 import TextbookDashboardPage from './pages/textbook/TextbookDashboardPage';
@@ -157,8 +162,6 @@ const App: React.FC = () => {
 
         <Route path="inventory-count" element={<InventoryCountPage />} />
 
-        <Route path="events" element={<LibraryEventsPage />} />
-
         <Route path="settings" element={<SettingsPage />} />
 
         <Route
@@ -213,6 +216,21 @@ const App: React.FC = () => {
         <Route path="distributions" element={<DistributionsPage />} />
         <Route path="individual" element={<IndividualDistributionsPage />} />
         <Route path="settings" element={<TextbookSettingsPage />} />
+      </Route>
+
+      {/* Events Module Routes */}
+      <Route
+        path="/events"
+        element={
+          <ProtectedRoute>
+            <EventsLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<EventsDashboardPage />} />
+        <Route path="list" element={<EventsListPage />} />
+        <Route path="past" element={<PastEventsPage />} />
+        <Route path="reports" element={<EventReportsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
